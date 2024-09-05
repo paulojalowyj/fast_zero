@@ -44,7 +44,6 @@ def update_user(user_id: int, user: UserSchema):
 
 @app.get('/users/{user_id}', response_model=UserPublic)
 def read_user(user_id: int):
-
     raise HTTPException(
         status_code=HTTPStatus.NOT_FOUND, detail='User not found'
     )
