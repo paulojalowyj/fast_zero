@@ -11,6 +11,4 @@ def test_create_user(session):
 
     result = session.scalar(select(User).where(User.email == 'test@test.com'))
 
-    print(result)
-
     assert result.username == 'test'
