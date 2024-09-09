@@ -25,8 +25,8 @@ def test_create_username_already_exists(client, user):
     response = client.post(
         '/users/',
         json={
-            'username': 'test',
-            'email': 'test1@test.com',
+            'username': user.username,
+            'email': user.email,
             'password': 'secret',
         },
     )
@@ -40,7 +40,7 @@ def test_create_email_already_exists(client, user):
         '/users/',
         json={
             'username': 'test 2',
-            'email': 'test@test.com',
+            'email': user.email,
             'password': 'secret',
         },
     )
@@ -84,9 +84,9 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_user_not_enought_permissions(client, user, token):
+def test_update_user_not_enought_permissions(client, other_user, token):
     response = client.put(
-        f'/users/{user.id + 1}',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
         json={
             'password': '1',
@@ -100,9 +100,9 @@ def test_update_user_not_enought_permissions(client, user, token):
     assert response.json() == {'detail': 'Not enough permissions'}
 
 
-def test_read_user_not_enought_permissions(client, user, token):
+def test_read_user_not_enought_permissions(client, other_user, token):
     response = client.get(
-        f'/users/{user.id + 1}',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
@@ -134,9 +134,9 @@ def test_delete_user(client, user, token):
     assert response.json() == {'message': 'User deleted'}
 
 
-def test_delete_user_not_enought_permissions(client, user, token):
+def test_delete_user_not_enought_permissions(client, other_user, token):
     response = client.delete(
-        f'/users/{user.id + 1}',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
