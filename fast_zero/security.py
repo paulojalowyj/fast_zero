@@ -1,17 +1,25 @@
 from datetime import datetime, timedelta
+from http import HTTPStatus
 
-from jwt import encode, decode
+import jwt
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jwt import (
+    DecodeError,
+    ExpiredSignatureError,
+    InvalidTokenError,
+    PyJWTError,
+    decode,
+    encode,
+)
 from pwdlib import PasswordHash
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from zoneinfo import ZoneInfo
 
-from fast_zero.settings import Settings
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 from fast_zero.database import get_session
-
-from fastapi import Depends
-
-from http import HTTPException, HTTPStatus
+from fast_zero.models import User
+from fast_zero.settings import Settings
 
 pwd_context = PasswordHash.recommended()
 
@@ -47,7 +55,9 @@ def get_current_user(
     session: Session = Depends(get_session),
     token: str = Depends(oauth2_scheme),
 ):
-    payload = decode(token, Settings().JWT_SECRET, algorithms=Settings().JWT_ALGORITHM)
+    payload = decode(
+        token, Settings().JWT_SECRET, algorithms=Settings().JWT_ALGORITHM
+    )
 
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
@@ -56,9 +66,19 @@ def get_current_user(
     )
 
     try:
-        payload = jwt.decode(token, Settings().JWT_SECRET)
-        username: str = payload.get('sub')
+        payload = jwt.decode(
+            token, Settings().JWT_SECRET, algorithms=Settings().JWT_ALGORITHM
+        )
+        id: int = payload.get('sub')
+
         if not id:
             raise credentials_exception
-    except JWTError:
+    except PyJWTError:
         raise credentials_exception
+
+    user_db = session.scalar(select(User).where(User.id == id))
+
+    if not user_db:
+        raise credentials_exception
+
+    return user_db

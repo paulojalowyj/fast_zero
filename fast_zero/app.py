@@ -10,11 +10,10 @@ from fast_zero.models import User
 from fast_zero.schemas import Message, Token, UserList, UserPublic, UserSchema
 from fast_zero.security import (
     create_access_token,
+    get_current_user,
     get_password_hash,
     verify_password,
 )
-
-from fast_zero.security import get_current_user
 
 app = FastAPI()
 
@@ -76,33 +75,34 @@ def update_user(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
-    db_user = session.scalar(select(User).where(User.id == user_id))
-
-    if not db_user:
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Not enough permissions',
         )
 
-    db_user.username = user.username
-    db_user.password = get_password_hash(user.password)
-    db_user.email = user.email
+    current_user.username = user.username
+    current_user.password = get_password_hash(user.password)
+    current_user.email = user.email
 
     session.commit()
-    session.refresh(db_user)
+    session.refresh(current_user)
 
-    return db_user
+    return current_user
 
 
 @app.get('/users/{user_id}', response_model=UserPublic)
-def read_user(user_id: int, session: Session = Depends(get_session)):
-    db_user = session.scalar(select(User).where(User.id == user_id))
-
-    if not db_user:
+def read_user(
+    user_id: int,
+    current_user=Depends(get_current_user),
+):
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Not enough permissions',
         )
 
-    return db_user
+    return current_user
 
 
 @app.delete(
@@ -113,14 +113,13 @@ def delete_user(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
-    db_user = session.scalar(select(User).where(User.id == user_id))
-
-    if not db_user:
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Not enough permissions',
         )
 
-    session.delete(db_user)
+    session.delete(current_user)
     session.commit()
 
     return {'message': 'User deleted'}
@@ -143,6 +142,6 @@ def request_for_access_token(
             detail='Incorrect email or password',
         )
 
-    access_token = create_access_token(data={'sub': db_user.email})
+    access_token = create_access_token(data={'sub': db_user.id})
 
     return {'access_token': access_token, 'token_type': 'Bearer'}
