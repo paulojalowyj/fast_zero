@@ -5,6 +5,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
+      JWT_ACCESS_TOKEN_EXPIRES_IN_MINUTES: ${{ secrets.JWT_ACCESS_TOKEN_EXPIRES_IN_MINUTES }}
+
     steps:
       - name: Copia os arquivos do repositório
         uses: actions/checkout@v3
