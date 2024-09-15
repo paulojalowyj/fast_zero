@@ -1,17 +1,14 @@
-FROM python:3.12.5 AS builder
+FROM python:3.12-slim
+ENV POETRY_VIRTUALENVS_CREATE=false
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-WORKDIR /app
+WORKDIR app/
+COPY . .
 
 RUN pip install poetry
-RUN poetry config virtualenvs.in-project true
-COPY pyproject.toml poetry.lock ./
-RUN poetry install
-FROM python:3.12.5-slim
-WORKDIR /app
-COPY --from=builder /app/.venv .venv/
-COPY . .
-CMD ["/app/.venv/bin/fastapi", "run", "./fast_zero/app.py"]
 
+RUN poetry config installer.max-workers 10
+RUN poetry install --no-interaction --no-ansi
 
+EXPOSE 8000
+
+CMD ["poetry", "run", "fastapi", "run", "./fast_zero/app.py"]
